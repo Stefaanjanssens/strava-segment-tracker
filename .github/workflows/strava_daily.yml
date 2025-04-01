@@ -1,0 +1,67 @@
+name: Daily Strava Segment Update
+
+on:
+  schedule:
+    # Runs every day at 05:00 UTC (adjust time as needed)
+    # See: https://crontab.guru/ for help with cron syntax
+    - cron: '40 8 * * *'
+  workflow_dispatch: # Allows manual triggering from the Actions tab
+
+jobs:
+  update-strava-data:
+    runs-on: ubuntu-latest # Use a standard Linux runner
+    steps:
+      # 1. Check out repository code
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          # Fetch full history so the script can read the previous CSV commit
+          fetch-depth: 0
+
+      # 2. Set up Python environment
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.10' # Or your preferred Python 3 version
+
+      # 3. Install dependencies from requirements.txt
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      # 4. Run the Strava Update Script
+      - name: Run Strava Update Script
+        env:
+          # Make secrets available as environment variables to the script
+          STRAVA_CLIENT_ID: ${{ secrets.STRAVA_CLIENT_ID }}
+          STRAVA_CLIENT_SECRET: ${{ secrets.STRAVA_CLIENT_SECRET }}
+          STRAVA_REFRESH_TOKEN: ${{ secrets.STRAVA_REFRESH_TOKEN }}
+          STRAVA_SEGMENT_IDS: ${{ secrets.STRAVA_SEGMENT_IDS }}
+        # Ensure this matches the actual name of your python script file
+        run: python strava_daily_tracker.py
+
+      # 5. Commit and push updated CSV and plots back to the repository
+      - name: Commit and push updated data
+        run: |
+          # Configure Git using the Actions bot identity
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+          # Add the master CSV file and any PNG files in the plots directory
+          # Use || true to prevent errors if files don't exist yet (e.g., first run)
+          git add ${{ env.MASTER_CSV_FILE }} || echo "No CSV file to add yet."
+          git add ${{ env.PLOT_DIR }}/*.png || echo "No plot files to add yet."
+
+          # Check if there are changes staged for commit
+          if ! git diff --staged --quiet; then
+            echo "Changes detected. Committing and pushing..."
+            git commit -m "Update Strava segment data and plots - $(date -u +'%Y-%m-%d %H:%M:%S UTC')"
+            git push
+          else
+            echo "No changes to commit."
+          fi
+        env:
+          # Make script constants available to the commit step
+          MASTER_CSV_FILE: all_segments_log.csv # Must match MASTER_CSV_FILE in python script
+          PLOT_DIR: plots                 # Must match PLOT_DIR in python script
