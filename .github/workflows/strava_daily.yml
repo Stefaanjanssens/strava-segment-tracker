@@ -2,9 +2,9 @@ name: Daily Strava Segment Update
 
 on:
   schedule:
-    # Runs every day at 05:00 UTC (adjust time as needed)
+    # Runs every day at the time below UTC (adjust time as needed)
     # See: https://crontab.guru/ for help with cron syntax
-    - cron: '40 8 * * *'
+    - cron: '55 8 * * *'
   workflow_dispatch: # Allows manual triggering from the Actions tab
 
 jobs:
