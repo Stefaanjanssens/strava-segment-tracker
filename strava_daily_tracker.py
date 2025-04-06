@@ -303,7 +303,7 @@ def generate_plot(segment_id, segment_name):
     Generates a plot of *daily* attempts for a specific segment
     reading data from the master CSV. Ensures the first point is zero.
     """
-    plot_filename = f"segment_{segment_id}_plot.png"
+    plot_filename = f"segment_{segment_name}_plot.png"
     plot_filepath = os.path.join(PLOT_DIR, plot_filename)
     print(f"Generating plot '{plot_filepath}' for segment {segment_id}...")
 
