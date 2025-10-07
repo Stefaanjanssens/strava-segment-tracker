@@ -372,6 +372,112 @@ def generate_plot(segment_id, segment_name):
         print(f"ERROR generating plot for segment {segment_id}: {e}")
 
 
+def generate_weekly_plot(segment_id, segment_name):
+    """
+    Generates a plot of weekly accumulated attempts for a specific segment.
+    """
+    plot_filename = f"segment_{segment_name}_weekly_plot.png"
+    plot_filepath = os.path.join(PLOT_DIR, plot_filename)
+    print(f"Generating weekly plot '{plot_filepath}' for segment {segment_id}...")
+
+    os.makedirs(PLOT_DIR, exist_ok=True)
+
+    if not os.path.exists(MASTER_CSV_FILE):
+        print(f"Weekly plotting skipped: Master CSV file '{MASTER_CSV_FILE}' not found.")
+        return
+
+    try:
+        df_all = pd.read_csv(MASTER_CSV_FILE, parse_dates=['date'], index_col='date')
+        df_segment = df_all[df_all['segment_id'] == int(segment_id)].copy()
+
+        if df_segment.empty or 'daily_attempts' not in df_segment.columns:
+            print(f"Weekly plotting skipped: No data for segment {segment_id}.")
+            return
+
+        df_segment.sort_index(inplace=True)
+
+        # Resample to weekly frequency and sum daily attempts
+        df_weekly = df_segment['daily_attempts'].resample('W').sum()
+
+        if df_weekly.empty or len(df_weekly) < 1:
+            print(f"Weekly plotting skipped: Not enough data for segment {segment_id}.")
+            return
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(df_weekly.index, df_weekly.values, marker='o', linestyle='-')
+
+        ax.set_title(f'Weekly Accumulated Attempts on Segment: {segment_name} ({segment_id})')
+        ax.set_xlabel('Week Ending')
+        ax.set_ylabel('Attempts Accumulated That Week')
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+        ax.set_ylim(bottom=0)
+
+        ax.xaxis.set_major_locator(mdates.AutoDateLocator(minticks=4, maxticks=12))
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m-%d'))
+        plt.xticks(rotation=30, ha='right')
+
+        plt.tight_layout()
+        plt.savefig(plot_filepath)
+        print(f"Weekly plot saved to '{plot_filepath}'")
+        plt.close(fig)
+
+    except Exception as e:
+        print(f"ERROR generating weekly plot for segment {segment_id}: {e}")
+
+
+def generate_monthly_plot(segment_id, segment_name):
+    """
+    Generates a plot of monthly accumulated attempts for a specific segment.
+    """
+    plot_filename = f"segment_{segment_name}_monthly_plot.png"
+    plot_filepath = os.path.join(PLOT_DIR, plot_filename)
+    print(f"Generating monthly plot '{plot_filepath}' for segment {segment_id}...")
+
+    os.makedirs(PLOT_DIR, exist_ok=True)
+
+    if not os.path.exists(MASTER_CSV_FILE):
+        print(f"Monthly plotting skipped: Master CSV file '{MASTER_CSV_FILE}' not found.")
+        return
+
+    try:
+        df_all = pd.read_csv(MASTER_CSV_FILE, parse_dates=['date'], index_col='date')
+        df_segment = df_all[df_all['segment_id'] == int(segment_id)].copy()
+
+        if df_segment.empty or 'daily_attempts' not in df_segment.columns:
+            print(f"Monthly plotting skipped: No data for segment {segment_id}.")
+            return
+
+        df_segment.sort_index(inplace=True)
+
+        # Resample to monthly frequency and sum daily attempts
+        df_monthly = df_segment['daily_attempts'].resample('ME').sum()
+
+        if df_monthly.empty or len(df_monthly) < 1:
+            print(f"Monthly plotting skipped: Not enough data for segment {segment_id}.")
+            return
+
+        fig, ax = plt.subplots(figsize=(12, 6))
+        ax.plot(df_monthly.index, df_monthly.values, marker='o', linestyle='-')
+
+        ax.set_title(f'Monthly Accumulated Attempts on Segment: {segment_name} ({segment_id})')
+        ax.set_xlabel('Month Ending')
+        ax.set_ylabel('Attempts Accumulated That Month')
+        ax.grid(True, which='both', linestyle='--', linewidth=0.5)
+        ax.set_ylim(bottom=0)
+
+        ax.xaxis.set_major_locator(mdates.MonthLocator())
+        ax.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))
+        plt.xticks(rotation=30, ha='right')
+
+        plt.tight_layout()
+        plt.savefig(plot_filepath)
+        print(f"Monthly plot saved to '{plot_filepath}'")
+        plt.close(fig)
+
+    except Exception as e:
+        print(f"ERROR generating monthly plot for segment {segment_id}: {e}")
+
+
 # --- Main Execution Logic ---
 if __name__ == "__main__":
     start_time = datetime.datetime.now()
@@ -423,6 +529,8 @@ if __name__ == "__main__":
         # Generate plots using the now updated master log file
         for segment_data in all_segment_data_current:
             generate_plot(segment_data['id'], segment_data['name'])
+            generate_weekly_plot(segment_data['id'], segment_data['name'])
+            generate_monthly_plot(segment_data['id'], segment_data['name'])
 
 
     # --- Summary ---
